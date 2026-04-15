@@ -1,7 +1,6 @@
 """Crop data ingestion service."""
 
 import logging
-import re
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +9,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.models import RawCropData
+from app.transformations.utils import normalize_column_name
 
 logger = logging.getLogger(__name__)
 
@@ -20,13 +20,6 @@ REQUIRED_COLUMNS = {
     "yield_kg_per_hectare",
     "area_hectares",
 }
-
-
-def normalize_column_name(column_name: str) -> str:
-    """Convert a column name to snake_case."""
-    normalized = column_name.strip().lower()
-    normalized = re.sub(r"[^a-z0-9]+", "_", normalized)
-    return normalized.strip("_")
 
 
 def load_crop_csv(file_path: Path | str) -> pd.DataFrame:
@@ -59,7 +52,7 @@ def load_crop_csv(file_path: Path | str) -> pd.DataFrame:
 
 
 def insert_raw_crop_data(db: Session, crop_data: pd.DataFrame) -> int:
-    """Insert crop records into raw_crop_data, skipping duplicates."""
+    """Insert raw crop data rows, skipping duplicates."""
     if crop_data.empty:
         logger.info("No crop data rows to insert")
         return 0

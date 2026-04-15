@@ -1,7 +1,6 @@
 """Crop data transformation helpers."""
 
 import logging
-import re
 
 import pandas as pd
 
@@ -11,6 +10,7 @@ from app.quality.checks import (
     validate_no_null_regions,
     validate_non_negative_values,
 )
+from app.transformations.utils import normalize_column_name
 
 logger = logging.getLogger(__name__)
 
@@ -59,10 +59,3 @@ def clean_crop_data(crop_data: pd.DataFrame) -> pd.DataFrame:
 
     logger.info("Cleaned %s crop rows", len(cleaned_data))
     return cleaned_data.loc[:, CROP_OUTPUT_COLUMNS].copy()
-
-
-def normalize_column_name(column_name: str) -> str:
-    """Convert a column name to snake_case."""
-    normalized = column_name.strip().lower()
-    normalized = re.sub(r"[^a-z0-9]+", "_", normalized)
-    return normalized.strip("_")

@@ -2,7 +2,6 @@
 
 from datetime import date
 import logging
-import re
 from typing import Any
 
 import pandas as pd
@@ -12,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.models import RawWeather
+from app.transformations.utils import normalize_column_name
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +107,7 @@ def weather_response_to_dataframe(
 
 
 def insert_raw_weather_data(db: Session, weather_data: pd.DataFrame) -> int:
-    """Insert weather records into raw_weather, skipping duplicates."""
+    """Insert raw weather data rows, skipping duplicates."""
     if weather_data.empty:
         logger.info("No weather data rows to insert")
         return 0
@@ -158,13 +158,6 @@ def ingest_weather_data(
         db.rollback()
         logger.exception("Weather data ingestion failed")
         raise
-
-
-def normalize_column_name(column_name: str) -> str:
-    """Convert a column name to snake_case."""
-    normalized = column_name.strip().lower()
-    normalized = re.sub(r"[^a-z0-9]+", "_", normalized)
-    return normalized.strip("_")
 
 
 def build_archive_url(base_url: str) -> str:

@@ -1,29 +1,39 @@
 # Agri Data Pipeline Analytics
 
-A Python 3.11 data engineering project that ingests crop and weather data, stores raw records in PostgreSQL, applies data quality checks and transformations, publishes a FastAPI service, and visualizes analytics in Streamlit.
+A compact data engineering project that ingests Kenyan crop and weather data, validates and transforms it into an analytics-ready PostgreSQL fact table, exposes a FastAPI service, and presents the results in a Streamlit dashboard.
 
-## Architecture
+The project is intentionally small, but it follows production-conscious patterns: environment-based configuration, idempotent database loads, structured logging, data quality checks, focused tests, and clear operational entrypoints.
 
-The project follows a compact analytics pipeline:
+## Architecture Overview
 
-1. Crop data ingestion loads sample Kenyan crop observations from CSV into `raw_crop_data`.
-2. Weather ingestion fetches historical daily weather from the Open-Meteo Archive API into `raw_weather`.
-3. Transformation logic cleans both datasets, joins crop rows to weather rows by region/location and date, and calculates `total_yield_estimate`.
-4. Data quality checks validate required fields, non-negative crop metrics, reasonable weather temperatures, and duplicate fact keys.
-5. The fact table loader writes analytics-ready rows to `fact_crop_performance`.
-6. FastAPI exposes health, pipeline execution, and summary endpoints.
-7. Streamlit reads the fact table directly from PostgreSQL and renders dashboard metrics.
+```text
+sample crop CSV ─┐
+                 ├─ ingestion ─ raw tables ─ transformations + quality checks ─ fact table
+Open-Meteo API ──┘                                                            │
+                                                                               ├─ FastAPI summary endpoint
+                                                                               └─ Streamlit dashboard
+```
+
+Pipeline stages:
+
+1. Load sample crop data from `data/sample/crop_data.csv` into `raw_crop_data`.
+2. Fetch historical daily weather from Open-Meteo into `raw_weather`.
+3. Clean, normalize, validate, and join raw crop and weather rows.
+4. Compute `total_yield_estimate`.
+5. Load analytics-ready records into `fact_crop_performance`.
+6. Serve summary metrics through FastAPI and dashboard views through Streamlit.
 
 ## Stack
 
-- FastAPI for API endpoints
-- Streamlit for the dashboard
-- pandas for ingestion and transformations
-- SQLAlchemy for database access
-- PostgreSQL for persistence
-- Pydantic for settings and API response models
-- requests for Open-Meteo API calls
-- pytest for transformation and quality checks
+- Python 3.11
+- FastAPI
+- Streamlit
+- pandas
+- SQLAlchemy
+- PostgreSQL
+- Pydantic
+- requests
+- pytest
 
 ## Project Structure
 
@@ -44,6 +54,7 @@ agri-data-pipeline-analytics/
 │   └── transformations/
 │       ├── crop_transform.py
 │       ├── fact_table_transform.py
+│       ├── utils.py
 │       └── weather_transform.py
 ├── dashboard/
 │   └── app.py
@@ -51,6 +62,8 @@ agri-data-pipeline-analytics/
 │   ├── raw/
 │   └── sample/
 │       └── crop_data.csv
+├── queries/
+│   └── analysis.sql
 ├── scripts/
 │   ├── init_db.py
 │   └── run_pipeline.py
@@ -85,25 +98,25 @@ DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/agri_data
 OPEN_METEO_BASE_URL=https://archive-api.open-meteo.com/v1
 ```
 
-Create the PostgreSQL database if needed:
+Create the database before initializing tables:
 
 ```bash
 createdb agri_data
 ```
 
-Initialize tables:
+Initialize the schema:
 
 ```bash
 python scripts/init_db.py
 ```
 
-## Run The Pipeline
+Run the pipeline before opening the dashboard:
 
 ```bash
 python scripts/run_pipeline.py
 ```
 
-The pipeline is duplicate-safe. Re-running it skips records already present in the raw and fact tables.
+The pipeline is idempotent. Re-running it skips records already present in the raw and fact tables.
 
 ## Run The API
 
@@ -127,57 +140,33 @@ streamlit run dashboard/app.py
 
 The dashboard reads from `fact_crop_performance` and includes:
 
-- KPI cards for total records, average yield, and total estimated yield
-- Region and crop filters
-- Top-performing regions table
-- Yield trend line chart
+- total records, average yield, and total estimated yield KPIs
+- region and crop filters
+- top-performing regions table
+- yield trend over time
+
+## Run Tests
+
+```bash
+pytest
+```
 
 ## Sample Analytics Queries
 
-Total fact rows:
+Reusable SQL examples live in [queries/analysis.sql](queries/analysis.sql).
 
-```sql
-SELECT COUNT(*) AS total_rows
-FROM fact_crop_performance;
-```
+Examples include:
 
-Average yield by region:
-
-```sql
-SELECT
-    region,
-    AVG(yield_kg_per_hectare) AS average_yield_kg_per_hectare
-FROM fact_crop_performance
-GROUP BY region
-ORDER BY region;
-```
-
-Top regions by total estimated yield:
-
-```sql
-SELECT
-    region,
-    SUM(total_yield_estimate) AS total_estimated_yield
-FROM fact_crop_performance
-GROUP BY region
-ORDER BY total_estimated_yield DESC
-LIMIT 5;
-```
-
-Yield trend over time:
-
-```sql
-SELECT
-    date,
-    AVG(yield_kg_per_hectare) AS average_yield_kg_per_hectare
-FROM fact_crop_performance
-GROUP BY date
-ORDER BY date;
-```
+- total fact rows
+- average yield by region
+- top regions by total estimated yield
+- yield trend over time
+- crop performance by crop and region
+- weather and yield comparison by region
 
 ## Why This Demonstrates Data Engineering Skills
 
-This project shows practical data engineering fundamentals in a small, readable codebase:
+This project demonstrates practical data engineering work in a focused codebase:
 
 - API ingestion from Open-Meteo without hardcoded secrets
 - CSV ingestion with pandas
@@ -186,5 +175,7 @@ This project shows practical data engineering fundamentals in a small, readable 
 - modular transformations into an analytics-ready fact table
 - reusable data quality validation
 - automated pytest coverage for transforms and checks
-- operational entrypoints through a CLI pipeline and FastAPI
-- a Streamlit dashboard for business-facing analytics
+- operational entrypoints through CLI and FastAPI
+- business-facing analytics through Streamlit
+
+It is deliberately lightweight, but the structure mirrors common production data pipeline concerns: configuration, observability, repeatability, validation, and clear handoff from raw data to analytics.
