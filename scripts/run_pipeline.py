@@ -13,6 +13,7 @@ from app.db import SessionLocal
 from app.logging_config import setup_logging
 from app.services.crop_service import ingest_crop_csv
 from app.services.weather_service import ingest_weather_data
+from app.transformations.fact_table_transform import transform_fact_crop_performance
 
 logger = logging.getLogger(__name__)
 CROP_DATA_PATH = PROJECT_ROOT / "data" / "sample" / "crop_data.csv"
@@ -35,6 +36,13 @@ def run_pipeline() -> None:
     logger.info(
         "Weather data ingestion completed with %s new rows",
         weather_inserted_count,
+    )
+
+    with SessionLocal() as db:
+        fact_inserted_count = transform_fact_crop_performance(db)
+    logger.info(
+        "Fact table transformation completed with %s new rows",
+        fact_inserted_count,
     )
 
 
