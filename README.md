@@ -35,7 +35,7 @@ agri-data-pipeline-analytics/
 
 ## Setup
 
-Create and activate a Python 3.11 virtual environment:
+From the project root, create and activate a Python 3.11 virtual environment:
 
 ```bash
 python3.11 -m venv .venv
@@ -54,7 +54,30 @@ Create local environment settings:
 cp .env.example .env
 ```
 
-Update `DATABASE_URL` in `.env` for your local PostgreSQL database.
+Update `DATABASE_URL` in `.env` for your local PostgreSQL database:
+
+```bash
+DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/agri_data
+OPEN_METEO_BASE_URL=https://api.open-meteo.com/v1
+```
+
+Create the PostgreSQL database if it does not already exist:
+
+```bash
+createdb agri_data
+```
+
+Initialize the database tables:
+
+```bash
+python scripts/init_db.py
+```
+
+The initialization script creates the current SQLAlchemy tables:
+
+- `raw_weather`
+- `raw_crop_data`
+- `fact_crop_performance`
 
 ## Run The API
 
@@ -72,12 +95,6 @@ curl http://127.0.0.1:8000/health
 
 ```bash
 streamlit run dashboard/app.py
-```
-
-## Initialize The Database
-
-```bash
-python scripts/init_db.py
 ```
 
 The current scaffold intentionally avoids business logic. Pipeline services, transformations, data quality checks, models, and schemas will be added in later iterations.
