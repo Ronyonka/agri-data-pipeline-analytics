@@ -5,6 +5,13 @@ import re
 
 import pandas as pd
 
+from app.quality.checks import (
+    require_columns,
+    validate_no_null_dates,
+    validate_no_null_regions,
+    validate_non_negative_values,
+)
+
 logger = logging.getLogger(__name__)
 
 REQUIRED_CROP_COLUMNS = {
@@ -46,6 +53,10 @@ def clean_crop_data(crop_data: pd.DataFrame) -> pd.DataFrame:
     if dropped_count:
         logger.info("Dropped %s crop rows with missing identity fields", dropped_count)
 
+    validate_no_null_dates(cleaned_data)
+    validate_no_null_regions(cleaned_data)
+    validate_non_negative_values(cleaned_data, CROP_NUMERIC_COLUMNS)
+
     logger.info("Cleaned %s crop rows", len(cleaned_data))
     return cleaned_data.loc[:, CROP_OUTPUT_COLUMNS].copy()
 
@@ -55,15 +66,3 @@ def normalize_column_name(column_name: str) -> str:
     normalized = column_name.strip().lower()
     normalized = re.sub(r"[^a-z0-9]+", "_", normalized)
     return normalized.strip("_")
-
-
-def require_columns(
-    data: pd.DataFrame,
-    required_columns: set[str],
-    dataset_name: str,
-) -> None:
-    """Raise a helpful error when required columns are absent."""
-    missing_columns = required_columns - set(data.columns)
-    if missing_columns:
-        missing = ", ".join(sorted(missing_columns))
-        raise ValueError(f"{dataset_name} is missing required columns: {missing}")

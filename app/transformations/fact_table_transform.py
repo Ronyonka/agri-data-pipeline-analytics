@@ -9,6 +9,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.models import FactCropPerformance, RawCropData, RawWeather
+from app.quality.checks import validate_no_duplicate_fact_keys
 from app.transformations.crop_transform import clean_crop_data
 from app.transformations.weather_transform import clean_weather_data
 
@@ -49,9 +50,11 @@ def build_crop_performance_fact(
     fact_data["total_yield_estimate"] = (
         fact_data["yield_kg_per_hectare"] * fact_data["area_hectares"]
     )
+    fact_data = fact_data.loc[:, FACT_COLUMNS].copy()
+    validate_no_duplicate_fact_keys(fact_data)
 
     logger.info("Built %s crop performance fact rows", len(fact_data))
-    return fact_data.loc[:, FACT_COLUMNS].copy()
+    return fact_data
 
 
 def load_raw_crop_data(db: Session) -> pd.DataFrame:
