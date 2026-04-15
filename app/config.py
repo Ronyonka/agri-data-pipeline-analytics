@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     database_url: str = Field(..., alias="DATABASE_URL")
     open_meteo_base_url: str = Field(
-        "https://api.open-meteo.com/v1",
+        "https://archive-api.open-meteo.com/v1",
         alias="OPEN_METEO_BASE_URL",
     )
 

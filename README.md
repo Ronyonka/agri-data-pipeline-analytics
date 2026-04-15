@@ -58,7 +58,7 @@ Update `DATABASE_URL` in `.env` for your local PostgreSQL database:
 
 ```bash
 DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/agri_data
-OPEN_METEO_BASE_URL=https://api.open-meteo.com/v1
+OPEN_METEO_BASE_URL=https://archive-api.open-meteo.com/v1
 ```
 
 Create the PostgreSQL database if it does not already exist:
@@ -78,6 +78,23 @@ The initialization script creates the current SQLAlchemy tables:
 - `raw_weather`
 - `raw_crop_data`
 - `fact_crop_performance`
+
+## Data Ingestion
+
+The project includes a sample Kenyan crop dataset at `data/sample/crop_data.csv`.
+It contains crop yield and area records across Nairobi, Nakuru, Eldoret, Nyeri, Meru, and Kisumu.
+The pipeline also fetches historical daily weather for the same regions from the Open-Meteo API, which does not require an API key.
+
+After initializing the database, run the ingestion pipeline:
+
+```bash
+python scripts/run_pipeline.py
+```
+
+The pipeline loads the sample crop CSV with pandas, normalizes column names, parses dates, validates required fields, and inserts rows into `raw_crop_data`.
+It also fetches daily weather from Open-Meteo for `2025-01-15` through `2025-03-15` and inserts rows into `raw_weather`.
+Duplicate crop records are skipped using the database uniqueness rule for `region`, `date`, and `crop_name`.
+Duplicate weather records are skipped using the database uniqueness rule for `location` and `date`, so running the command more than once is safe.
 
 ## Run The API
 
